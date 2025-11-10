@@ -1,0 +1,7 @@
+paho-mqtt
+scikit-learn
+numpy
+fastapi
+uvicorn[standard]
+sqlalchemy
+tensorflow
