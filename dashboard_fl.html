@@ -65,7 +65,6 @@
             color: var(--accent-blue);
         }
         
-        /* 2. ADDED THIS CSS RULE FOR CHART SIZING */
         .chart-container {
             position: relative;
             height: 350px;
@@ -125,6 +124,28 @@
         </div>
 
         <div class="card metrics-card">
+            <h2>🤖 RL Traffic Control (EDGE-001)</h2>
+            <div id="rl-1-light-status" class="prediction-text" style="color: var(--accent-red)">
+                LIGHT IS RED
+            </div>
+            <div style="margin-top: 1rem;">
+                <span id="rl-1-cars" class="metric-value">--</span>
+                <div class="metric-label">Cars Waiting</div>
+            </div>
+        </div>
+
+        <div class="card metrics-card">
+            <h2>🤖 RL Traffic Control (EDGE-002)</h2>
+            <div id="rl-2-light-status" class="prediction-text" style="color: var(--accent-red)">
+                LIGHT IS RED
+            </div>
+            <div style="margin-top: 1rem;">
+                <span id="rl-2-cars" class="metric-value">--</span>
+                <div class="metric-label">Cars Waiting</div>
+            </div>
+        </div>
+
+        <div class="card metrics-card">
             <h2>EDGE-001 (Quiet Street)</h2>
             <div>
                 <span id="node-1-count" class="metric-value">--</span>
@@ -156,7 +177,6 @@
 
     <script>
         // --- Chart Setup ---
-        
         const lossCtx = document.getElementById('lossChart').getContext('2d');
         
         const lossChart = new Chart(lossCtx, {
@@ -167,22 +187,22 @@
                         label: 'EDGE-001 Loss',
                         data: [], // {x: timestamp, y: loss}
                         borderColor: 'rgba(54, 162, 235, 1)',
-                        backgroundColor: 'rgba(54, 162, 235, 0.2)', // More subtle fill
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
                         fill: true,
                         tension: 0.1,
-                        borderWidth: 3, // Thicker line
-                        pointRadius: 4, // More visible points
+                        borderWidth: 3,
+                        pointRadius: 4,
                         pointHoverRadius: 6
                     },
                     {
                         label: 'EDGE-002 Loss',
                         data: [],
                         borderColor: 'rgba(255, 99, 132, 1)',
-                        backgroundColor: 'rgba(255, 99, 132, 0.2)', // More subtle fill
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
                         fill: true,
                         tension: 0.1,
-                        borderWidth: 3, // Thicker line
-                        pointRadius: 4, // More visible points
+                        borderWidth: 3,
+                        pointRadius: 4,
                         pointHoverRadius: 6
                     }
                 ]
@@ -240,9 +260,11 @@
             console.log("Connected to MQTT over WebSockets.");
             document.getElementById('status-dot').className = 'status-dot dot-green';
             document.getElementById('status-text').innerText = 'Connected';
+            // Subscribe to all our topics
             client.subscribe("smartcity/fl/predictions");
             client.subscribe("smartcity/fl/metrics");
             client.subscribe("smartcity/fl/system_events");
+            client.subscribe("smartcity/rl/action");
         }
 
         function onFailure(response) {
@@ -264,13 +286,17 @@
                 const topic = message.destinationName;
                 const data = JSON.parse(message.payloadString);
 
+                // --- THIS IS THE CORRECTED LOGIC ---
                 if (topic === "smartcity/fl/predictions") {
                     updateMetricsWidget(data);
                 } else if (topic === "smartcity/fl/metrics") {
                     updateLossChart(data);
                 } else if (topic === "smartcity/fl/system_events") {
                     updateSystemWidget(data);
+                } else if (topic === "smartcity/rl/action") {
+                    updateRLWidget(data); // <-- NOW CALLS THE CORRECT FUNCTION
                 }
+                
             } catch (e) {
                 console.error("Error processing message:", e);
             }
@@ -318,6 +344,26 @@
                 chartData.shift();
             }
             lossChart.update();
+        }
+        
+        function updateRLWidget(data) {
+            const { node_id, action_str, cars_waiting } = data;
+
+            let statusEl, carsEl;
+
+            if (node_id === 'EDGE-001') {
+                statusEl = document.getElementById('rl-1-light-status');
+                carsEl = document.getElementById('rl-1-cars');
+            } else if (node_id === 'EDGE-002') {
+                statusEl = document.getElementById('rl-2-light-status');
+                carsEl = document.getElementById('rl-2-cars');
+            } else {
+                return; // Not for this dashboard
+            }
+
+            statusEl.innerText = `LIGHT IS ${action_str}`;
+            statusEl.style.color = (action_str === "GREEN") ? 'var(--accent-green)' : 'var(--accent-red)';
+            carsEl.innerText = cars_waiting;
         }
     </script>
 </body>
