@@ -45,7 +45,11 @@ for step in range(total_steps):
         state, _ = env.reset()
 
 print("Training complete.")
+# ... after the test loop ...
 
+print("Saving trained agent...")
+agent.save_q_table("ai_traffic_agent.json")
+print("Done.")
 # --- 3. Test the "Trained" Agent ---
 print("\n--- Testing Trained AI-Powered Agent (Epsilon=0) ---")
 state, _ = env.reset()

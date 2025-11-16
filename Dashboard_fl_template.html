@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ report_title }}</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px 15px;
+            text-align: left;
+        }
+        th {
+            background-color: #34495e;
+            color: #ffffff;
+            font-weight: 600;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        /* Style for Predictions */
+        td:nth-child(4), td:nth-child(5) {
+            background-color: #ecf0f1;
+            font-weight: 500;
+            color: #2980b9;
+        }
+        th:nth-child(4), th:nth-child(5) {
+            background-color: #2980b9;
+        }
+        /* Style for Phase/Action */
+        td:nth-child(6), td:nth-child(8) {
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>{{ report_title }}</h1>
+        <p>This report shows a 100-step simulation run of the trained AI-powered traffic agent. It includes the agent's "proactive" state, which uses predictions from the FL model.</p>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Step</th>
+                    <th>Cars N/S</th>
+                    <th>Cars E/W</th>
+                    <th>Predicted N/S</th>
+                    <th>Predicted E/W</th>
+                    <th>Light Phase</th>
+                    <th>Time in Phase</th>
+                    <th>Action Taken</th>
+                    <th>Reward</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in simulation_log %}
+                <tr>
+                    <td>{{ log.step }}</td>
+                    <td>{{ log.cars_ns }}</td>
+                    <td>{{ log.cars_ew }}</td>
+                    <td>{{ log.predicted_ns }}</td>
+                    <td>{{ log.predicted_ew }}</td>
+                    <td>{{ log.phase }}</td>
+                    <td>{{ log.time_in_phase }}</td>
+                    <td>{{ log.action_taken }}</td>
+                    <td>{{ log.reward }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</body>
+</html>

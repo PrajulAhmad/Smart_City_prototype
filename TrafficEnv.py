@@ -1,65 +1,93 @@
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
-# We don't need to import the predictor here, 
-# it will be passed in during __init__
 
 class TrafficIntersectionEnv(gym.Env):
     """
-    An AI-Powered 4-way intersection environment.
+    A simple 4-way intersection environment for Q-Learning.
     
-    - State: (cars_NS, cars_EW, current_phase, time_in_phase, 
-              predicted_NS, predicted_EW)
-    - Actions: 0 (Stay), 1 (Switch)
+    - State (Baseline): (cars_NS, cars_EW, current_phase, time_in_phase)
+    - State (AI-Powered): (cars_NS, cars_EW, current_phase, time_in_phase, 
+                           predicted_NS, predicted_EW)
     """
     
-    def __init__(self, predictor, max_cars_per_lane=20, max_time_in_phase=60):
+    def __init__(self, predictor=None, max_cars_per_lane=20, max_time_in_phase=60):
         super(TrafficIntersectionEnv, self).__init__()
         
-        self.predictor = predictor # <-- NEW: Store the predictor
+        # --- 1. Setup Predictor ---
+        self.predictor = predictor
+        self.use_predictor = (self.predictor is not None)
+        
+        # --- 2. Setup Env Parameters ---
         self.max_cars = max_cars_per_lane
         self.max_time = max_time_in_phase
         
-        # Define Action Space (Discrete: 0 or 1)
         self.action_space = spaces.Discrete(2)
         
-        # --- MODIFIED: Observation Space ---
-        # Now has 6 elements:
-        # (cars_NS, cars_EW, current_phase, time_in_phase, predicted_NS, predicted_EW)
-        self.observation_space = spaces.MultiDiscrete(
-            [
-                self.max_cars + 1,  # cars_NS
-                self.max_cars + 1,  # cars_EW
-                2,                  # current_phase
-                self.max_time + 1,  # time_in_phase
-                self.max_cars + 1,  # predicted_NS
-                self.max_cars + 1   # predicted_EW
-            ]
-        )
-        
-        # Simulation parameters
+        # --- 3. Setup Observation Space (Dynamic) ---
+        if self.use_predictor:
+            # 6-part AI-Powered State
+            self.observation_space = spaces.MultiDiscrete(
+                [
+                    self.max_cars + 1,  # cars_NS
+                    self.max_cars + 1,  # cars_EW
+                    2,                  # current_phase
+                    self.max_time + 1,  # time_in_phase
+                    self.max_cars + 1,  # predicted_NS
+                    self.max_cars + 1   # predicted_EW
+                ]
+            )
+        else:
+            # 4-part Baseline State
+            self.observation_space = spaces.MultiDiscrete(
+                [
+                    self.max_cars + 1,  # cars_NS
+                    self.max_cars + 1,  # cars_EW
+                    2,                  # current_phase
+                    self.max_time + 1   # time_in_phase
+                ]
+            )
+
+        # --- 4. Setup Simulation Parameters ---
         self.car_arrival_prob = 0.3
         self.cars_cleared_per_step = 2
 
-        self.state = (0, 0, 0, 0, 0, 0) # Initial dummy state
+        # --- 5. Initialize Dummy State Variables ---
+        # This is the fix: these MUST be defined here
+        self.cars_ns = 0
+        self.cars_ew = 0
+        self.current_phase = 0
+        self.time_in_phase = 0
+        
+        if self.use_predictor:
+            self.predicted_ns = 0
+            self.predicted_ew = 0
+
+        # self.state is just a placeholder, reset() will set the real one
+        self.state = self.get_obs() 
+        
+        # --- __init__ MUST NOT return anything ---
 
     def reset(self, seed=None, options=None):
-        """Reset the environment to an initial state."""
+        """
+        Resets the environment to a new starting state.
+        This is called at the beginning of each episode.
+        """
         super().reset(seed=seed)
         
+        # Set real starting values
         self.cars_ns = np.random.randint(0, 5)
         self.cars_ew = np.random.randint(0, 5)
         self.current_phase = np.random.randint(0, 2)
         self.time_in_phase = 0
         
-        # Get initial predictions
-        self.predicted_ns, self.predicted_ew = self.predictor.predict(
-            self.cars_ns, self.cars_ew
-        )
+        # Get initial predictions if using predictor
+        if self.use_predictor:
+            self.predicted_ns, self.predicted_ew = self.predictor.predict(
+                self.cars_ns, self.cars_ew
+            )
         
-        self.state = (self.cars_ns, self.cars_ew, self.current_phase, 
-                      self.time_in_phase, self.predicted_ns, self.predicted_ew)
-        
+        # reset() MUST return the observation and an info dict
         return self.get_obs(), {}
 
     def step(self, action):
@@ -88,17 +116,15 @@ class TrafficIntersectionEnv(gym.Env):
             self.cars_ew = min(self.cars_ew + 1, self.max_cars)
             
         # --- 3. Calculate Reward ---
-        # We can make the reward smarter now, but for simplicity,
-        # we'll keep it the same. The agent will learn to use
-        # the new state info to optimize this reward.
         wait_penalty = (self.cars_ns + self.cars_ew)
         pass_reward = cars_passed
         reward = pass_reward - wait_penalty
         
         # --- 4. Get New Predictions for Next State ---
-        self.predicted_ns, self.predicted_ew = self.predictor.predict(
-            self.cars_ns, self.cars_ew
-        )
+        if self.use_predictor:
+            self.predicted_ns, self.predicted_ew = self.predictor.predict(
+                self.cars_ns, self.cars_ew
+            )
 
         # --- 5. Check for "Done" and update state ---
         truncated = self.time_in_phase > self.max_time
@@ -106,12 +132,15 @@ class TrafficIntersectionEnv(gym.Env):
              self.current_phase = 1 - self.current_phase
              self.time_in_phase = 0
              
-        # --- MODIFIED: Update the full 6-part state ---
-        self.state = (self.cars_ns, self.cars_ew, self.current_phase, 
-                      self.time_in_phase, self.predicted_ns, self.predicted_ew)
-        
+        # step() MUST return 5 values
         return self.get_obs(), reward, False, truncated, {}
 
     def get_obs(self):
         """Helper to return the current state as a tuple."""
-        return self.state
+        if self.use_predictor:
+            # Return 6-part AI-Powered State
+            return (self.cars_ns, self.cars_ew, self.current_phase, 
+                    self.time_in_phase, self.predicted_ns, self.predicted_ew)
+        else:
+            # Return 4-part Baseline State
+            return (self.cars_ns, self.cars_ew, self.current_phase, self.time_in_phase)
