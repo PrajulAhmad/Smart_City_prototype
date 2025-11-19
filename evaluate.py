@@ -28,7 +28,7 @@ def train_agent(env, total_steps=100_000, quiet=False):
         if truncated:
             state, _ = env.reset()
             
-        if not quiet and (step + 1) % 20_000 == 0:
+        if not quiet and (step + 1) % 50_000 == 0: # Updated log interval
             print(f"... training step {step+1}/{total_steps}")
             
     end_time = time.time()
@@ -60,7 +60,8 @@ def test_agent(agent, env, total_steps=1000):
 
 if __name__ == "__main__":
     
-    TRAINING_STEPS = 100_000
+    # UPDATED training steps
+    TRAINING_STEPS = 500_000
     TEST_STEPS = 5_000
     
     print("--- 1. Evaluating Baseline (Reactive) Agent ---")
@@ -72,7 +73,10 @@ if __name__ == "__main__":
     print(f"Training Baseline Agent for {TRAINING_STEPS} steps...")
     baseline_agent = train_agent(baseline_env, total_steps=TRAINING_STEPS)
     
-    # 1c. Test Baseline
+    # 1c. Save Baseline Agent (CRITICAL for dashboard)
+    baseline_agent.save_q_table("baseline_traffic_agent.json")
+    
+    # 1d. Test Baseline
     print(f"Testing Baseline Agent for {TEST_STEPS} steps...")
     baseline_reward = test_agent(baseline_agent, baseline_env, total_steps=TEST_STEPS)
     

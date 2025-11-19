@@ -8,7 +8,8 @@ from MockEnergyPredictor import MockEnergyPredictor
 
 def train_agent(env, total_steps=100_000, quiet=False):
     """Trains a new Q-Learning agent on a given environment."""
-    agent = QLearningAgent(action_space=env.action_space, epsilon_decay=0.9999)
+    # Slower decay for this complex problem
+    agent = QLearningAgent(action_space=env.action_space, epsilon_decay=0.99995) 
     state, _ = env.reset()
     start_time = time.time()
     for step in range(total_steps):
@@ -18,7 +19,7 @@ def train_agent(env, total_steps=100_000, quiet=False):
         state = next_state
         agent.update_epsilon()
         if truncated: state, _ = env.reset()
-        if not quiet and (step + 1) % 20_000 == 0:
+        if not quiet and (step + 1) % 100_000 == 0: # Updated log interval
             print(f"... training step {step+1}/{total_steps}")
     end_time = time.time()
     if not quiet:
@@ -42,13 +43,18 @@ def test_agent(agent, env, total_steps=5000):
 
 if __name__ == "__main__":
     
-    TRAINING_STEPS = 200_000 # Use a higher number for better results
+    # UPDATED training steps
+    TRAINING_STEPS = 1_000_000 
     TEST_STEPS = 10_000
     
     print("--- 1. Evaluating Baseline (Reactive) Energy Agent ---")
     baseline_env = EnergyEnv(predictor=None)
     print(f"Training Baseline Agent for {TRAINING_STEPS} steps...")
     baseline_agent = train_agent(baseline_env, total_steps=TRAINING_STEPS)
+    
+    # 1c. Save Baseline Agent (CRITICAL for dashboard)
+    baseline_agent.save_q_table("baseline_energy_agent.json")
+    
     print(f"Testing Baseline Agent for {TEST_STEPS} steps...")
     baseline_reward = test_agent(baseline_agent, baseline_env, total_steps=TEST_STEPS)
     
@@ -57,6 +63,7 @@ if __name__ == "__main__":
     ai_env = EnergyEnv(predictor=ai_predictor)
     print(f"Training AI-Powered Agent for {TRAINING_STEPS} steps...")
     ai_agent = train_agent(ai_env, total_steps=TRAINING_STEPS)
+    
     print(f"Testing AI-Powered Agent for {TEST_STEPS} steps...")
     ai_reward = test_agent(ai_agent, ai_env, total_steps=TEST_STEPS)
     

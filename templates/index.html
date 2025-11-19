@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>AI Smart City Dashboard</title>
+
+    <!-- ApexCharts -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root{
+            --bg-1: #eef3f7;
+            --bg-2: #f7fbfe;
+            --card-bg: rgba(255,255,255,0.72);
+            --glass-border: rgba(255,255,255,0.5);
+            --muted: #6b7280;
+            --header: #0f1724;
+            --accent: #1f6feb;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --predict: #3498db;
+            --glass-shadow: 0 8px 28px rgba(15,23,36,0.06);
+            --radius: 14px;
+        }
+
+        /* Page load animation */
+        html,body{height:100%;}
+        body{
+            margin:0;
+            padding:28px;
+            font-family:"Inter", system-ui;
+            background: linear-gradient(180deg,var(--bg-1) 0%, var(--bg-2) 100%);
+            color:var(--header);
+            opacity:0;
+            transform: translateY(8px);
+            animation: pageEnter 520ms cubic-bezier(.2,.9,.3,1) forwards;
+        }
+        @keyframes pageEnter{
+            to { opacity:1; transform: translateY(0); }
+        }
+
+        /* Heading */
+        h1{
+            margin:0 0 26px 0;
+            font-weight:600;
+            font-size:28px;
+            text-align:center;
+            position:relative;
+            color:var(--header);
+        }
+        h1::after{
+            content:"";
+            display:block;
+            width:120px;
+            height:4px;
+            background: linear-gradient(90deg,var(--accent), #6b8cff);
+            border-radius:4px;
+            margin:10px auto 0 auto;
+        }
+
+        /* Layout */
+        .main-container{
+            display:flex;
+            gap:22px;
+            max-width:1800px;
+            margin:24px auto;
+        }
+
+        .domain-column{
+            flex:1;
+            min-width:300px;
+            background:var(--card-bg);
+            border-radius:var(--radius);
+            padding:20px;
+            box-shadow:var(--glass-shadow);
+            border:1px solid var(--glass-border);
+            backdrop-filter: blur(8px) saturate(120%);
+            transition: .25s ease;
+        }
+        .domain-column:hover{
+            transform:translateY(-6px);
+            box-shadow: 0 18px 40px rgba(15,23,36,0.09);
+        }
+
+        .domain-header{
+            display:flex;
+            gap:12px;
+            align-items:center;
+            padding-bottom:12px;
+            margin-bottom:14px;
+            border-bottom:1px solid rgba(15,23,36,0.06);
+            font-weight:600;
+            font-size:18px;
+        }
+
+        .sim-box{
+            margin-bottom:16px;
+            border-radius:10px;
+            padding:14px;
+            background: rgba(255,255,255,0.55);
+            border:1px solid rgba(0,0,0,0.04);
+        }
+
+        .sim-box h3{
+            margin:0 0 12px;
+            font-size:15px;
+            font-weight:700;
+            color:var(--muted);
+        }
+        .baseline h3 { color:var(--danger); }
+        .ai-powered h3 { color:var(--success); }
+
+        /* Metrics */
+        .metric{
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            padding:8px 6px;
+            font-size:14px;
+        }
+        .metric-label { font-weight:500; color:#555; }
+
+        /* Glassy pill */
+        .metric-value{
+            min-width:80px;
+            padding:6px 14px;
+            border-radius:50px;
+            background:rgba(255,255,255,0.9);
+            backdrop-filter: blur(6px);
+            font-weight:700;
+            text-align:center;
+            color:#222;
+            border:1px solid rgba(255,255,255,0.7);
+        }
+        .metric-value.prediction{
+            background:rgba(52,152,219,0.15);
+            color:var(--predict);
+        }
+
+        /* Traffic Light Box */
+        .traffic-light{
+            display:flex;
+            justify-content:space-around;
+            align-items:center;
+            width:70px;
+            height:32px;
+            background:#111;
+            border-radius:8px;
+            padding:6px;
+        }
+
+        /* --------------- OFF LIGHT (OPTION A) --------------- */
+        .light{
+            width:20px;
+            height:20px;
+            border-radius:50%;
+            background:#1a1a1a !important;
+            opacity:0.25 !important;
+            border:2px solid #000 !important;
+            box-shadow:none !important;
+            transition:all .25s ease;
+        }
+
+        /* GREEN LIGHT ACTIVE */
+        .light.green{
+            background:#2ecc71 !important;
+            opacity:1 !important;
+            border-color:#1b7f48 !important;
+            box-shadow:
+                0 0 6px rgba(46,204,113,0.75),
+                0 0 12px rgba(46,204,113,0.5),
+                inset 0 0 4px rgba(255,255,255,0.4) !important;
+        }
+
+        /* RED LIGHT ACTIVE */
+        .light.red{
+            background:#e74c3c !important;
+            opacity:1 !important;
+            border-color:#7d1f16 !important;
+            box-shadow:
+                0 0 6px rgba(231,76,60,0.75),
+                0 0 12px rgba(231,76,60,0.5),
+                inset 0 0 4px rgba(255,255,255,0.4) !important;
+        }
+        /* ----------------------------------------------------- */
+
+        .chart-container{ height:84px; }
+
+        /* Gauge */
+        .gauge-bar{
+            width:100%;
+            height:18px;
+            background:#edf1f4;
+            border-radius:10px;
+            overflow:hidden;
+        }
+        .gauge-bar-inner{
+            height:100%;
+            width:0%;
+            border-radius:10px;
+            transition: width .6s cubic-bezier(.2,.9,.3,1);
+        }
+        .baseline .gauge-bar-inner { background:#e74c3c; }
+        .ai-powered .gauge-bar-inner { background:#2ecc71; }
+        .prediction .gauge-bar-inner { background:#3498db; }
+
+        /* Loader while fetching */
+        .fetch-loader{
+            position:fixed;
+            top:18px; right:18px;
+            background:rgba(255,255,255,0.9);
+            padding:10px 14px;
+            border-radius:50px;
+            display:flex;
+            gap:10px;
+            align-items:center;
+            backdrop-filter:blur(8px);
+            border:1px solid rgba(255,255,255,0.6);
+            opacity:0;
+            transform:translateY(-6px);
+            transition:.25s;
+        }
+        .fetch-loader.show{ opacity:1; transform:translateY(0); }
+
+        .spinner{
+            width:18px; height:18px;
+            border-radius:50%;
+            border:3px solid rgba(0,0,0,0.1);
+            border-top-color:var(--accent);
+            animation:spin 1s linear infinite;
+        }
+        @keyframes spin{ to{ transform:rotate(360deg);} }
+
+        /* Initial Loader */
+        .overlay-loader{
+            position:fixed;
+            inset:0;
+            background:rgba(255,255,255,0.85);
+            backdrop-filter:blur(6px);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            z-index:999;
+        }
+        .overlay-inner{
+            background:white;
+            padding:20px 30px;
+            border-radius:12px;
+            box-shadow:0 16px 40px rgba(0,0,0,0.1);
+            text-align:center;
+        }
+
+    </style>
+</head>
+
+<body>
+
+    <!-- Initial Loader -->
+    <div id="overlayLoader" class="overlay-loader">
+        <div class="overlay-inner">
+            <div class="spinner" style="width:28px;height:28px;border-width:4px;margin:0 auto 10px;"></div>
+            <h3 style="margin:0;color:#333;">Loading Dashboard…</h3>
+            <p style="margin-top:6px;color:#555;">Fetching data from the simulation engine…</p>
+        </div>
+    </div>
+
+    <!-- Fetch Loader -->
+    <div id="fetchLoader" class="fetch-loader">
+        <div class="spinner"></div>
+        <div style="font-size:13px;font-weight:600;color:#333;">Updating</div>
+    </div>
+
+    <h1>AI Smart City Control Center</h1>
+
+    <div class="main-container">
+    
+        <!-- TRAFFIC -->
+        <div class="domain-column">
+            <div class="domain-header">
+                <span>🚗</span> Traffic Management
+            </div>
+
+            <div class="sim-box baseline">
+                <h3>Baseline (Reactive)</h3>
+                <div class="metric">
+                    <span class="metric-label">Light Phase</span>
+                    <div class="traffic-light">
+                        <div class="light" id="t-base-light-ns"></div>
+                        <div class="light" id="t-base-light-ew"></div>
+                    </div>
+                </div>
+
+                <div class="metric">
+                    <span class="metric-label">Cars (N/S)</span>
+                    <span class="metric-value" id="t-base-cars-ns">--</span>
+                </div>
+
+                <div class="metric">
+                    <span class="metric-label">Cars (E/W)</span>
+                    <span class="metric-value" id="t-base-cars-ew">--</span>
+                </div>
+
+                <div class="chart-container" id="t-base-chart"></div>
+
+                <div class="metric">
+                    <span class="metric-label">Total Reward</span>
+                    <span class="metric-value" id="t-base-reward">--</span>
+                </div>
+            </div>
+
+            <div class="sim-box ai-powered">
+                <h3>AI-Powered (Proactive)</h3>
+
+                <div class="metric">
+                    <span class="metric-label">Light Phase</span>
+                    <div class="traffic-light">
+                        <div class="light" id="t-ai-light-ns"></div>
+                        <div class="light" id="t-ai-light-ew"></div>
+                    </div>
+                </div>
+
+                <div class="metric">
+                    <span class="metric-label">Cars (N/S)</span>
+                    <span class="metric-value" id="t-ai-cars-ns">--</span>
+                </div>
+
+                <div class="metric">
+                    <span class="metric-label">Cars (E/W)</span>
+                    <span class="metric-value" id="t-ai-cars-ew">--</span>
+                </div>
+
+                <div class="metric">
+                    <span class="metric-label">Pred (N/S)</span>
+                    <span class="metric-value prediction" id="t-ai-pred-ns">--</span>
+                </div>
+
+                <div class="metric">
+                    <span class="metric-label">Pred (E/W)</span>
+                    <span class="metric-value prediction" id="t-ai-pred-ew">--</span>
+                </div>
+
+                <div class="chart-container" id="t-ai-chart"></div>
+
+                <div class="metric">
+                    <span class="metric-label">Total Reward</span>
+                    <span class="metric-value" id="t-ai-reward">--</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- WASTE -->
+        <div class="domain-column">
+            <div class="domain-header">
+                <span>🗑️</span> Waste Management
+            </div>
+
+            <div class="sim-box baseline">
+                <h3>Baseline (Reactive)</h3>
+                <div class="metric">
+                    <span class="metric-label">Truck at Bin</span>
+                    <span class="metric-value" id="w-base-truck">--</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Bin Levels</span>
+                    <span class="metric-value" id="w-base-bins">--</span>
+                </div>
+                <div class="chart-container" id="w-base-chart"></div>
+                <div class="metric">
+                    <span class="metric-label">Total Reward</span>
+                    <span class="metric-value" id="w-base-reward">--</span>
+                </div>
+            </div>
+
+            <div class="sim-box ai-powered">
+                <h3>AI-Powered (Proactive)</h3>
+                <div class="metric">
+                    <span class="metric-label">Truck at Bin</span>
+                    <span class="metric-value" id="w-ai-truck">--</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Bin Levels</span>
+                    <span class="metric-value" id="w-ai-bins">--</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Predictions</span>
+                    <span class="metric-value prediction" id="w-ai-preds">--</span>
+                </div>
+                <div class="chart-container" id="w-ai-chart"></div>
+                <div class="metric">
+                    <span class="metric-label">Total Reward</span>
+                    <span class="metric-value" id="w-ai-reward">--</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ENERGY -->
+        <div class="domain-column">
+            <div class="domain-header">
+                <span>⚡</span> Energy Management
+            </div>
+
+            <div class="sim-box baseline">
+                <h3>Baseline (Reactive)</h3>
+                <div class="metric">
+                    <span class="metric-label">Hour</span>
+                    <span class="metric-value" id="e-base-hour">--</span>
+                </div>
+
+                <div class="metric">
+                    <span class="metric-label">Battery (0-10)</span>
+                    <div style="flex:1;margin-left:12px;">
+                        <div class="gauge-bar">
+                            <div class="gauge-bar-inner" id="e-base-battery"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-container" id="e-base-chart"></div>
+
+                <div class="metric">
+                    <span class="metric-label">Total Reward</span>
+                    <span class="metric-value" id="e-base-reward">--</span>
+                </div>
+            </div>
+
+            <div class="sim-box ai-powered">
+                <h3>AI-Powered (Proactive)</h3>
+
+                <div class="metric">
+                    <span class="metric-label">Hour</span>
+                    <span class="metric-value" id="e-ai-hour">--</span>
+                </div>
+
+                <div class="metric">
+                    <span class="metric-label">Battery (0-10)</span>
+                    <div style="flex:1;margin-left:12px;">
+                        <div class="gauge-bar">
+                            <div class="gauge-bar-inner" id="e-ai-battery"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metric prediction">
+                    <span class="metric-label">Pred Demand</span>
+                    <div style="flex:1;margin-left:12px;">
+                        <div class="gauge-bar">
+                            <div class="gauge-bar-inner" id="e-ai-pred"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-container" id="e-ai-chart"></div>
+
+                <div class="metric">
+                    <span class="metric-label">Total Reward</span>
+                    <span class="metric-value" id="e-ai-reward">--</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+
+        /* -------- TRAFFIC LIGHT LOGIC (Option A + Option 3) -------- */
+
+        function setTrafficLights(nsElId, ewElId, phase) {
+            const ns = document.getElementById(nsElId);
+            const ew = document.getElementById(ewElId);
+
+            // Reset to OFF
+            ns.className = "light";
+            ew.className = "light";
+
+            const nsGreen = phase?.toLowerCase().includes("n/s");
+
+            if (nsGreen) {
+                ns.classList.add("green");
+                ew.classList.add("red");
+            } else {
+                ns.classList.add("red");
+                ew.classList.add("green");
+            }
+        }
+
+        /* -------------------------------------------------------------
+            Fetching + UI Updates + Chart Logic
+        -------------------------------------------------------------- */
+
+        const STEP_ENDPOINT = "/step";
+        const fetchLoader = document.getElementById("fetchLoader");
+        const overlayLoader = document.getElementById("overlayLoader");
+
+        const chartData = {
+            "t-base": [], "t-ai": [],
+            "w-base": [], "w-ai": [],
+            "e-base": [], "e-ai": []
+        };
+
+        const MAX_POINTS = 50;
+
+        function createChart(color) {
+            return {
+                chart: { type: "line", height: 84, sparkline: { enabled: true } },
+                stroke: { curve: "smooth", width: 3 },
+                colors: [color],
+                series: [{ data: [] }],
+                tooltip: { enabled: false }
+            };
+        }
+
+        const charts = {
+            "t-base": new ApexCharts(document.querySelector("#t-base-chart"), createChart("#e74c3c")),
+            "t-ai":   new ApexCharts(document.querySelector("#t-ai-chart"), createChart("#2ecc71")),
+            "w-base": new ApexCharts(document.querySelector("#w-base-chart"), createChart("#e74c3c")),
+            "w-ai":   new ApexCharts(document.querySelector("#w-ai-chart"), createChart("#2ecc71")),
+            "e-base": new ApexCharts(document.querySelector("#e-base-chart"), createChart("#e74c3c")),
+            "e-ai":   new ApexCharts(document.querySelector("#e-ai-chart"), createChart("#2ecc71"))
+        };
+
+        Object.values(charts).forEach(c => c.render());
+
+        function addPoint(seriesId, value) {
+            chartData[seriesId].push(value);
+            if (chartData[seriesId].length > MAX_POINTS) {
+                chartData[seriesId].shift();
+            }
+            charts[seriesId].updateSeries([{ data: chartData[seriesId] }]);
+        }
+
+        function setText(id, value) {
+            document.getElementById(id).textContent = value ?? "--";
+        }
+        function setGauge(id, value) {
+            document.getElementById(id).style.width = (value * 10) + "%";
+        }
+
+        let firstFetch = true;
+
+        async function updateDashboard() {
+            fetchLoader.classList.add("show");
+            try {
+                const res = await fetch(STEP_ENDPOINT);
+                const data = await res.json();
+
+                /* -------- Traffic -------- */
+                const t = data.traffic;
+
+                setText("t-base-cars-ns", t.baseline.cars_ns);
+                setText("t-base-cars-ew", t.baseline.cars_ew);
+                setText("t-base-reward", t.baseline.reward);
+                setTrafficLights("t-base-light-ns", "t-base-light-ew", t.baseline.phase);
+                addPoint("t-base", t.baseline.step_reward);
+
+                setText("t-ai-cars-ns", t.ai.cars_ns);
+                setText("t-ai-cars-ew", t.ai.cars_ew);
+                setText("t-ai-pred-ns", t.ai.pred_ns);
+                setText("t-ai-pred-ew", t.ai.pred_ew);
+                setText("t-ai-reward", t.ai.reward);
+                setTrafficLights("t-ai-light-ns", "t-ai-light-ew", t.ai.phase);
+                addPoint("t-ai", t.ai.step_reward);
+
+                /* -------- Waste -------- */
+                const w = data.waste;
+
+                setText("w-base-truck", w.baseline.truck_at);
+                setText("w-base-bins", w.baseline.bins);
+                setText("w-base-reward", w.baseline.reward);
+                addPoint("w-base", w.baseline.step_reward);
+
+                setText("w-ai-truck", w.ai.truck_at);
+                setText("w-ai-bins", w.ai.bins);
+                setText("w-ai-preds", w.ai.preds);
+                setText("w-ai-reward", w.ai.reward);
+                addPoint("w-ai", w.ai.step_reward);
+
+                /* -------- Energy -------- */
+                const e = data.energy;
+
+                setText("e-base-hour", e.baseline.hour);
+                setGauge("e-base-battery", e.baseline.battery);
+                setText("e-base-reward", e.baseline.reward);
+                addPoint("e-base", e.baseline.step_reward);
+
+                setText("e-ai-hour", e.ai.hour);
+                setGauge("e-ai-battery", e.ai.battery);
+                setGauge("e-ai-pred", e.ai.pred_demand);
+                setText("e-ai-reward", e.ai.reward);
+                addPoint("e-ai", e.ai.step_reward);
+
+                if (firstFetch) {
+                    overlayLoader.style.display = "none";
+                    firstFetch = false;
+                }
+
+            } catch (err) {
+                console.error("Fetch error", err);
+            }
+
+            fetchLoader.classList.remove("show");
+        }
+
+        updateDashboard();
+        setInterval(updateDashboard, 1000);
+
+    </script>
+
+</body>
+</html>
+

@@ -12,8 +12,9 @@ agent = QLearningAgent(action_space=env.action_space, epsilon_decay=0.9999, min_
 
 # --- 2. Training ---
 print("Starting RL Training...")
-total_steps = 200_000 # Waste mgmt is a bit more complex, train longer
-log_interval = 20_000
+# UPDATED training steps
+total_steps = 500_000 
+log_interval = 50_000 # Increased log interval
 
 state, _ = env.reset()
 total_reward = 0

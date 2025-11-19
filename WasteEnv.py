@@ -101,16 +101,18 @@ class WasteEnv(gym.Env):
         
         return self.get_obs(), reward, False, truncated, {}
 
+    
     def get_obs(self):
         """
         Returns the state as a tuple. We must discretize
         levels for the Q-table.
         """
-        # Discretize levels (0-10)
-        discrete_levels = tuple(np.floor(self.bin_levels * 10).astype(int))
+        # Discretize levels (0-10) and convert to
+        # standard Python int to avoid (np.int64())
+        discrete_levels = tuple([int(x) for x in np.floor(self.bin_levels * 10)])
         
         if self.use_predictor:
-            discrete_preds = tuple(np.floor(self.predicted_levels * 10).astype(int))
+            discrete_preds = tuple([int(x) for x in np.floor(self.predicted_levels * 10)])
             return (self.truck_location,) + discrete_levels + discrete_preds
         else:
             return (self.truck_location,) + discrete_levels

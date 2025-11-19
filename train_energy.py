@@ -12,8 +12,9 @@ agent = QLearningAgent(action_space=env.action_space, epsilon_decay=0.99995, min
 
 # --- 2. Training ---
 print("Starting RL Training...")
-total_steps = 300_000 # This problem is harder, train for longer
-log_interval = 25_000
+# UPDATED training steps
+total_steps = 1_000_000 
+log_interval = 100_000 # Increased log interval
 
 state, _ = env.reset()
 total_reward = 0

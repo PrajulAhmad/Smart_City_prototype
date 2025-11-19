@@ -1,7 +1,11 @@
+fastapi
+Flask
+gymnasium
+jinja2
+numpy
 paho-mqtt
 scikit-learn
-numpy
-fastapi
-uvicorn[standard]
 sqlalchemy
 tensorflow
+tensorflow_federated
+uvicorn[standard]
