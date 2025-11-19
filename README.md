@@ -1,4 +1,4 @@
-🏙️ AI-Powered Smart City Management System
+**🏙️ AI-Powered Smart City Management System**
 
 A lightweight and practical prototype that uses prediction + reinforcement learning to manage key city operations such as traffic, waste, and energy.
 The idea is simple: let edge devices make smarter decisions by combining local sensor data with AI-generated predictions.
@@ -24,3 +24,48 @@ Dashboard – A Flask UI showing real-time performance
 Upgrade Q-Learning → Deep Q-Network (DQN)
 Replace mock predictors with real Federated Learning
 Enable multi-agent interactions across domains
+
+**🚀 How to Use**
+
+1) Clone the repository
+
+2) Install dependencies
+pip install -r requirements.txt
+
+Step 1: Train the agents
+python3 train.py
+python3 evaluate.py
+
+python3 train_waste.py
+python3 evaluate_waste.py
+
+python3 train_energy.py
+python3 evaluate_energy.py
+
+This generates the Q-tables (saved as .json files).
+
+Step 2: Start the dashboard
+python3 app.py
+
+Step 3: Open the visualization
+Go to:
+http://127.0.0.1:5000
+
+
+
+
+📁 Key Files
+
+RLAgent.py          # Q-Learning agent
+
+TrafficEnv.py       # Traffic simulation
+
+WasteEnv.py         # Waste simulation
+
+EnergyEnv.py        # Energy simulation
+
+app.py              # Dashboard server
+
+train*.py           # Training scripts
+
+evaluate*.py        # Baseline comparison
